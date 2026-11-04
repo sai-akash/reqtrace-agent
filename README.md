@@ -2,7 +2,12 @@
 
 An agent that checks engineering evidence against requirements, cites its sources, flags gaps, drafts follow-up questions and tests, and waits for human approval.
 
-**Status: scenario and evaluation data only. The agent is not built yet, so there are no results to report.**
+**Status: evaluation data, retrieval, an evaluation runner, and single-call LLM assessors are in place. The agent isn't built yet, and the labels aren't frozen, so there are no results to report.**
+
+| Assessor | Status |
+|---|---|
+| Ollama (local, free) | Tested against a fake local server |
+| Claude API | Tested against a fake API only, because it hasn't been run with a real key |
 
 ## First demo: IT change request review
 
@@ -27,7 +32,8 @@ domains/healthcare_it/       Fictional policy and change requests
 eval/datasets/healthcare_it/ Labelled cases (dev and held-out)
 eval/validate_cases.py       Checks the cases against the documents
 eval/review_labels.py        Blind label review and agreement check
-src/reqtrace/                Agent code (to be added)
+eval/run_eval.py             Retrieval and assessment experiments
+src/reqtrace/                Document loading, retrieval, and scoring
 tests/                       Tests for the validator and dataset
 ```
 

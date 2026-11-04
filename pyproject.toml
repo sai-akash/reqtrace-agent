@@ -8,10 +8,12 @@ version = "0.1.0"
 description = "Agent that checks evidence against requirements, cites sources, and waits for human approval."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["pyyaml>=6.0"]
+dependencies = ["pydantic>=2.0", "pyyaml>=6.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+embeddings = ["fastembed>=0.7"]
+claude = ["anthropic>=2.4,<3"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

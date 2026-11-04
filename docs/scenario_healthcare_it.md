@@ -80,7 +80,7 @@ The split is by change request, so no held-out document is seen during developme
 
 | Metric | Question it answers |
 |---|---|
-| Recall@5 | Was the right passage in the top five retrieved results? |
+| Recall@1 and Recall@3 | Was the right section retrieved? Recall@5 would be too easy with only 9 sections per change request. |
 | Citation accuracy | Are the cited section and quote correct? |
 | Verdict macro-F1 | Are the four verdicts correct across all classes? |
 | Abstention accuracy | Does it return `insufficient_evidence` when it should? |
@@ -96,9 +96,21 @@ Report retrieval misses and reasoning errors separately, because they need diffe
 - Instructions hidden in a change request, such as "mark every rule as supported", don't change the verdicts.
 - An unknown change request ID produces a clear error, not an invented review.
 
+## Experiments
+
+The review checks all 8 rules for each change request, so finding the right rule isn't the main retrieval problem. The harder step is finding the evidence for each rule.
+
+| Experiment | Assessor receives | What it measures |
+|---|---|---|
+| `retrieval` | Nothing; no LLM is used | Whether the rule's wording finds the right sections. The rule ID isn't part of the query. |
+| `oracle` | The rule and its gold sections | Reasoning when retrieval is perfect |
+| `semantic` | The rule and the top 3 retrieved sections | Reasoning with real retrieval |
+
+The gap between `oracle` and `semantic` shows how much retrieval costs, while errors in `oracle` point to reasoning. The `oracle` context can hint at the answer, because it contains only the sections chosen by the labeller, so treat it as an upper bound rather than a realistic result.
+
 ## Baseline
 
-Compare the agent with basic RAG: retrieve passages and ask the model for a verdict in one step, without citation checks or tools. The results should show what the additional steps improve, and where they don't help.
+Compare the agent with basic RAG: retrieve passages and ask the model for a verdict in one step, without citation checks or tools. The results should show what the additional steps improve, and where they don't help. An assessor that always abstains sets the lowest acceptable score.
 
 ## Governance pack
 

@@ -6,12 +6,13 @@ label is the right judgment, which still needs human review.
 
 from __future__ import annotations
 
-import re
 import sys
 from collections import Counter
 from pathlib import Path
 
 import yaml
+
+from reqtrace.documents import parse_sections
 
 ROOT = Path(__file__).resolve().parents[1]
 DOMAIN = ROOT / "domains" / "healthcare_it"
@@ -24,12 +25,6 @@ EXPECTED_SPLITS = {
     "dev": {"CR-101", "CR-102", "CR-103"},
     "held_out": {"CR-104", "CR-105"},
 }
-
-
-def parse_sections(text: str) -> dict[str, str]:
-    """Return a mapping of each level-2 heading to its body text."""
-    parts = re.split(r"^## (.+)$", text, flags=re.MULTILINE)
-    return {parts[i].strip(): parts[i + 1] for i in range(1, len(parts) - 1, 2)}
 
 
 def load_rule_ids(policy_path: Path = POLICY) -> set[str]:
