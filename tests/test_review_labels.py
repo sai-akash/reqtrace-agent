@@ -97,3 +97,26 @@ def test_agreement_reports_perfect_match(tmp_path, capsys):
             writer.writerow({**row, "verdict": gold[row["case_id"]]})
     assert review_labels.report_agreement(sheet) == 0
     assert "100%" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    ("encoding", "delimiter"),
+    [("utf-8", ","), ("utf-8-sig", ","), ("utf-8-sig", ";"), ("cp1252", ";")],
+)
+def test_agreement_reads_sheets_saved_by_excel(tmp_path, capsys, encoding, delimiter):
+    sheet = tmp_path / "sheet.csv"
+    review_labels.write_sheet(sheet)
+    rows = list(csv.reader(sheet.open(newline="", encoding="utf-8")))
+    filled = [rows[0]] + [row[:3] + ["supported"] for row in rows[1:]]
+    with sheet.open("w", newline="", encoding=encoding) as handle:
+        csv.writer(handle, delimiter=delimiter).writerows(filled)
+    capsys.readouterr()
+    assert review_labels.report_agreement(sheet) == 0
+    assert "Cases: 16" in capsys.readouterr().out
+
+
+def test_agreement_reports_missing_columns(tmp_path, capsys):
+    sheet = tmp_path / "sheet.csv"
+    sheet.write_text("case_id,answer\nHIT-101-CHG-1,supported\n", encoding="utf-8")
+    assert review_labels.report_agreement(sheet) == 1
+    assert "missing these columns: verdict" in capsys.readouterr().out

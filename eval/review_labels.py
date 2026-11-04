@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import csv
 import importlib.util
+import io
 import random
 import sys
 from collections import Counter, defaultdict
@@ -75,12 +76,29 @@ def sheet_problems(rows: list[dict], expected_ids: set[str]) -> list[str]:
     return problems
 
 
+def read_sheet(sheet: Path) -> tuple[list[str], list[dict]]:
+    """Read a filled sheet, including the BOM, encoding, or semicolons Excel may add."""
+    raw = sheet.read_bytes()
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        text = raw.decode("cp1252")
+    header = text.splitlines()[0] if text else ""
+    delimiter = ";" if header.count(";") > header.count(",") else ","
+    reader = csv.DictReader(io.StringIO(text, newline=""), delimiter=delimiter, restval="")
+    return list(reader.fieldnames or []), list(reader)
+
+
 def report_agreement(sheet: Path) -> int:
     cases = all_cases()
     gold = {case["case_id"]: case["gold_verdict"] for case in cases}
     expected_ids = {case["case_id"] for case in sample_cases(cases)}
-    with sheet.open(newline="", encoding="utf-8") as handle:
-        rows = list(csv.DictReader(handle))
+    columns, rows = read_sheet(sheet)
+    missing = {"case_id", "verdict"} - {column.strip() for column in columns}
+    if missing:
+        print(f"The sheet is missing these columns: {', '.join(sorted(missing))}")
+        return 1
+    rows = [{key.strip(): value for key, value in row.items() if key} for row in rows]
 
     problems = sheet_problems(rows, expected_ids)
     if problems:
