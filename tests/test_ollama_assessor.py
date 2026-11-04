@@ -100,7 +100,7 @@ def test_unusable_output_counts_against_the_score(server):
     server["reply"] = chat_reply(content="not json")
     report = evaluate_assessor(load_cases("dev")[:2], assessor(server), "oracle")
     assert report["failed_calls"] == 2
-    assert report["verdict_accuracy"] == 0
+    assert report["checked"]["verdict_accuracy"] == 0
 
 
 def test_missing_model_stops_with_a_pull_hint(server):

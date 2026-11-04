@@ -2,7 +2,7 @@
 
 An agent that checks engineering evidence against requirements, cites its sources, flags gaps, drafts follow-up questions and tests, and waits for human approval.
 
-**Status: evaluation data, retrieval, an evaluation runner, and single-call LLM assessors are in place. The agent isn't built yet, and the labels aren't frozen, so there are no results to report.**
+**Status: evaluation data, retrieval, an evaluation runner, single-call LLM assessors, and citation checks are in place. The agent isn't built yet, and the labels aren't frozen, so there are no results to report.**
 
 | Assessor | Status |
 |---|---|

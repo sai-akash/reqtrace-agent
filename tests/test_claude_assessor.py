@@ -80,8 +80,9 @@ def test_failed_call_counts_against_the_score():
     client = fake_client(api_response("", stop_reason="refusal"))
     report = evaluate_assessor(cases, ClaudeAssessor(client=client), "oracle")
     assert report["failed_calls"] == 3
-    assert report["verdict_accuracy"] == 0
-    assert all(row["predicted"] == "error" for row in report["details"])
+    assert report["raw"]["verdict_accuracy"] == 0
+    assert report["checked"]["verdict_accuracy"] == 0
+    assert all(row["checked_verdict"] == "error" for row in report["details"])
 
 
 def test_fallback_model_is_visible_in_the_report():

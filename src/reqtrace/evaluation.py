@@ -7,13 +7,12 @@ from collections.abc import Iterable, Sequence
 
 import yaml
 
-from reqtrace.assessment import Assessor, Finding, citation_is_verbatim
+from reqtrace.assessment import ABSTAIN, Assessor, Finding, check_citations, citation_is_verbatim
 from reqtrace.documents import ROOT, Rule, Section, load_change_request, load_rules
 from reqtrace.retrieval import Retriever, build_query
 
 DATASETS_DIR = ROOT / "eval" / "datasets" / "healthcare_it"
 VERDICTS = ("supported", "contradicted", "insufficient_evidence", "not_applicable")
-ABSTAIN = "insufficient_evidence"
 
 
 def load_cases(split: str, confirm_held_out: bool = False) -> list[dict]:
@@ -86,6 +85,17 @@ def _safe_ratio(numerator: int, denominator: int) -> float | None:
     return numerator / denominator if denominator else None
 
 
+def _verdict_scores(gold: Sequence[str], predicted: Sequence[str]) -> dict:
+    abstained = sum(p == ABSTAIN for p in predicted)
+    correct_abstentions = sum(g == ABSTAIN and p == ABSTAIN for g, p in zip(gold, predicted))
+    return {
+        "verdict_accuracy": sum(g == p for g, p in zip(gold, predicted)) / len(gold),
+        "verdict_macro_f1": macro_f1(gold, predicted),
+        "abstention_precision": _safe_ratio(correct_abstentions, abstained),
+        "abstention_recall": _safe_ratio(correct_abstentions, gold.count(ABSTAIN)),
+    }
+
+
 def evaluate_assessor(
     cases: Sequence[dict],
     assessor: Assessor,
@@ -94,7 +104,7 @@ def evaluate_assessor(
     top_k: int = 3,
     rules: dict[str, Rule] | None = None,
 ) -> dict:
-    """Score verdicts and citations.
+    """Score verdicts before and after the citation check, plus the citations.
 
     `oracle` gives the assessor the gold sections, which measures reasoning with
     perfect retrieval. `semantic` gives it the top-ranked sections instead.
@@ -105,10 +115,11 @@ def evaluate_assessor(
         raise ValueError("The semantic experiment needs a retriever.")
 
     rules = rules or load_rules()
-    gold, predicted, details = [], [], []
+    gold, raw, checked, details = [], [], [], []
     verbatim = cited = sections_found = sections_expected = 0
     input_tokens = output_tokens = 0
     served_by: Counter[str] = Counter()
+    downgrades: Counter[str] = Counter()
 
     for case in cases:
         all_sections = load_change_request(case["change_request"])
@@ -129,32 +140,47 @@ def evaluate_assessor(
         output_tokens += finding.output_tokens
         if finding.served_by:
             served_by[finding.served_by] += 1
+        check = check_citations(finding, context)
         gold.append(case["gold_verdict"])
-        predicted.append(finding.verdict)
-        verbatim += sum(citation_is_verbatim(c, context) for c in finding.citations)
-        cited += len(finding.citations)
-        sections_found += len(expected & {c.section for c in finding.citations})
+        raw.append(finding.verdict)
+        checked.append(check.verdict)
+        if check.downgrade_reason:
+            downgrades[check.downgrade_reason] += 1
+        citations = [
+            {"section": c.section, "quote": c.quote, "verbatim": citation_is_verbatim(c, context)}
+            for c in finding.citations
+        ]
+        verbatim += sum(c["verbatim"] for c in citations)
+        cited += len(citations)
+        # An invented quote doesn't count as finding the section.
+        sections_found += len(expected & {c["section"] for c in citations if c["verbatim"]})
         sections_expected += len(expected)
         details.append(
             {
                 "case_id": case["case_id"],
                 "gold": case["gold_verdict"],
-                "predicted": finding.verdict,
+                "raw_verdict": finding.verdict,
+                "checked_verdict": check.verdict,
+                "downgrade_reason": check.downgrade_reason,
                 "context_has_gold": expected <= {section.title for section in context},
-                "citations": [{"section": c.section, "quote": c.quote} for c in finding.citations],
+                "citations": citations,
                 "error": error,
             }
         )
 
-    abstained = sum(p == ABSTAIN for p in predicted)
-    correct_abstentions = sum(g == ABSTAIN and p == ABSTAIN for g, p in zip(gold, predicted))
+    changed = [(g, r, c) for g, r, c in zip(gold, raw, checked) if r != c]
     return {
         "experiment": experiment,
         "cases": len(cases),
-        "verdict_accuracy": sum(g == p for g, p in zip(gold, predicted)) / len(cases),
-        "verdict_macro_f1": macro_f1(gold, predicted),
-        "abstention_precision": _safe_ratio(correct_abstentions, abstained),
-        "abstention_recall": _safe_ratio(correct_abstentions, gold.count(ABSTAIN)),
+        "raw": _verdict_scores(gold, raw),
+        "checked": _verdict_scores(gold, checked),
+        "citation_check": {
+            "downgraded": len(changed),
+            "no_citations": downgrades["no_citations"],
+            "unverified_quote": downgrades["unverified_quote"],
+            "fixed_wrong_verdict": sum(g == c for g, _, c in changed),
+            "changed_correct_verdict": sum(g == r for g, r, _ in changed),
+        },
         "citation_verbatim_rate": _safe_ratio(verbatim, cited),
         "gold_section_citation_recall": _safe_ratio(sections_found, sections_expected),
         "failed_calls": sum(row["error"] is not None for row in details),

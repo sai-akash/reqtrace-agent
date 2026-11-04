@@ -32,7 +32,7 @@ The agent then pauses. It can export a report only after a person approves the f
 1. **Load the change request.** Read the document and record its ID and version.
 2. **Decide which rules apply.** Use the system tier and the type of change.
 3. **Find evidence.** Retrieve the relevant passages for each rule.
-4. **Verify citations.** Check that each quote appears in the cited section. If it doesn't, downgrade the finding to `insufficient_evidence`.
+4. **Verify citations.** Check that each quote appears in the cited section. Downgrade the finding to `insufficient_evidence` if a quote doesn't, or if any other verdict has no citations.
 5. **Judge each rule.** A real quote doesn't prove the verdict is right, so this is scored separately.
 6. **Draft follow-up questions.** Do this only for rules that need follow-up.
 7. **Request approval.** Stop until a person approves or rejects the findings.
@@ -108,9 +108,15 @@ The review checks all 8 rules for each change request, so finding the right rule
 
 The gap between `oracle` and `semantic` shows how much retrieval costs, while errors in `oracle` point to reasoning. The `oracle` context can hint at the answer, because it contains only the sections chosen by the labeller, so treat it as an upper bound rather than a realistic result.
 
+## Citation check
+
+Reports show scores before (`raw`) and after (`checked`) the check, plus how many downgrades fixed a wrong verdict or changed a correct one. Only `insufficient_evidence` may have no citations.
+
+The check shows that the quotes exist. It can't show that they prove the verdict or cover every fact the verdict relies on, so `gold_section_citation_recall` is reported separately and counts only verified quotes.
+
 ## Baseline
 
-Compare the agent with basic RAG: retrieve passages and ask the model for a verdict in one step, without citation checks or tools. The results should show what the additional steps improve, and where they don't help. An assessor that always abstains sets the lowest acceptable score.
+Compare the agent with basic RAG: retrieve passages and ask the model for a verdict in one step, without citation checks or tools. The `raw` scores from the `semantic` experiment give this baseline. The results should show what the additional steps improve, and where they don't help. An assessor that always abstains sets the lowest acceptable score.
 
 ## Governance pack
 
