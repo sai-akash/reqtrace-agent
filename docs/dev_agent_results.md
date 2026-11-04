@@ -85,4 +85,4 @@ In all of these runs, every review reached approval, the model made no export at
 
 ## Reports
 
-Reports are in `eval/results/agent/`: `free_cr101.json`, `scoped_cr101.json`, `workflow_dev.json`, `workflow_hostile_dev.json` (`system_override` with no screen), and the `attack_*.json` files.
+Reports are in `eval/results/agent/`: `free_cr101.json`, `scoped_cr101.json`, and `workflow_hostile_dev.json` are earlier runs from uncommitted code. `workflow_dev.json` comes from commit `06aba0f`, and the `attack_*.json` files come from `f4b6224`. Those two commits differ only in a report flag and saved reports, and repeated runs on this computer gave identical verdicts and citations.
