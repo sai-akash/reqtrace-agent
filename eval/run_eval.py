@@ -37,8 +37,13 @@ def current_commit() -> str:
 
 
 def tree_is_dirty() -> bool:
-    """Report tracked changes, because the commit alone wouldn't reproduce this run."""
-    return bool(git_output("status", "--porcelain", "--untracked-files=no"))
+    """Report tracked changes, because the commit alone wouldn't reproduce this run.
+
+    Saved reports don't affect a run, so they don't count.
+    """
+    return bool(
+        git_output("status", "--porcelain", "--untracked-files=no", "--", ".", ":(exclude)eval/results")
+    )
 
 
 def build_retriever(name: str):
