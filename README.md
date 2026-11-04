@@ -2,11 +2,11 @@
 
 An agent that checks engineering evidence against requirements, cites its sources, flags gaps, drafts follow-up questions and tests, and waits for human approval.
 
-**Status: evaluation data, retrieval, an evaluation runner, single-call LLM assessors, and citation checks are in place. The agent isn't built yet, and the labels aren't frozen, so there are no results to report.**
+**Status: evaluation data, retrieval, an evaluation runner, single-call LLM assessors, and citation checks are in place. The agent isn't built yet, and there are no published results. The labels are frozen as `labels-v1`, without an independent human review.**
 
 | Assessor | Status |
 |---|---|
-| Ollama (local, free) | Tested against a fake local server |
+| Ollama (local, free) | Run on the dev split with `qwen2.5:7b`; development runs only, so no published scores |
 | Claude API | Tested against a fake API only, because it hasn't been run with a real key |
 
 ## First demo: IT change request review
@@ -53,4 +53,4 @@ python -m pytest
 
 ## Data notice
 
-All organisations, systems, people, policies, and change requests here are invented. The repo contains no patient data and no data from any real company. The labels are one author's judgment and need an independent review before results are published. With only 5 source documents, results can't support broad claims about generalisation. See the [limitations](docs/scenario_healthcare_it.md#limitations-to-state-in-every-evaluation-report).
+All organisations, systems, people, policies, and change requests here are invented. The repo contains no patient data and no data from any real company. The labels are one author's judgment and haven't had an independent human review. Any published results must say so. With only 5 source documents, results can't support broad claims about generalisation. See the [limitations](docs/scenario_healthcare_it.md#limitations-to-state-in-every-evaluation-report).

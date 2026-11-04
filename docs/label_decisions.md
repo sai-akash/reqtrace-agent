@@ -18,4 +18,12 @@ The citation rules added evidence to 10 cases that relied on a fact outside thei
 
 ## Review history
 
-Independent review: not done yet.
+**Independent human review: none has taken place.**
+
+### Labels frozen on 4 November 2026 (tag `labels-v1`)
+
+The labels were frozen without an independent review so that development could continue. No label changed as part of the freeze.
+
+- **AI second opinion:** an AI model reviewed the 16-case sample and matched every label (16/16, kappa 1.00). It wasn't blind, because it had already seen some of the labels, so this isn't independent validation and shouldn't be reported as agreement.
+- **Guideline limitation:** the decision rules name some policy rules directly, and rule 2 decides `HIT-105-DAT-1`. High agreement may partly reflect how directly the guidelines state these decisions.
+- **Later review:** a person who hasn't seen the labels can still review this tag. Any resulting label change needs a new tag and a note here.

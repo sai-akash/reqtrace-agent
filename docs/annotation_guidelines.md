@@ -50,4 +50,4 @@ python eval/review_labels.py agreement review_sheet.csv
 
 Report the number of cases reviewed, raw agreement, and Cohen's kappa. Discuss any disagreements and record changes in the decision log. Don't quietly change a label to raise the agreement score.
 
-The labels are frozen once this review is complete. Tag that commit and report the tag with the results. Any later label change needs a new tag and a note explaining it.
+Tag the commit that freezes the labels, and report the tag with the results. If labels are frozen before an independent review, state that in the decision log and in every report. Any later label change needs a new tag and a note explaining it.

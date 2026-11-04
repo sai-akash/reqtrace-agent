@@ -64,7 +64,7 @@ The split is by change request, so no held-out document is seen during developme
 
 1. Label cases using the [annotation guidelines](annotation_guidelines.md).
 2. Ask a second person to label a sample without seeing the existing labels, then report the agreement.
-3. Freeze the labels by tagging the commit before any tuning.
+3. Freeze the labels by tagging the commit before any tuning. The current tag is `labels-v1`, frozen without an independent human review.
 4. Tune only on `dev`.
 5. Run `held_out` once, on the final version. If it's used to change the system, it no longer counts as held out.
 
@@ -137,7 +137,7 @@ These documents will sit alongside the agent:
 
 ## Build order
 
-1. Complete the independent label review and freeze the labels
+1. Freeze the labels (`labels-v1`) and complete an independent label review if a reviewer is available
 2. Basic RAG baseline and evaluation runner
 3. Citation checks and verdicts
 4. Agent tools, approval step, and audit log
