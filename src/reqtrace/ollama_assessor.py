@@ -12,10 +12,17 @@ from pydantic import ValidationError
 
 from reqtrace.assessment import Citation, Finding
 from reqtrace.documents import Rule, Section
-from reqtrace.prompting import SYSTEM_PROMPT, AssessmentError, FindingOutput, build_user_message
+from reqtrace.prompting import (
+    SYSTEM_PROMPT,
+    AssessmentError,
+    FindingOutput,
+    build_output_schema,
+    build_user_message,
+)
 
 DEFAULT_MODEL = "qwen2.5:7b"
 DEFAULT_HOST = "http://localhost:11434"
+MAX_OUTPUT_TOKENS = 1024
 
 
 class OllamaUnavailableError(Exception):
@@ -67,8 +74,13 @@ class OllamaAssessor:
             {
                 "model": self.model,
                 "stream": False,
-                "format": FindingOutput.model_json_schema(),
-                "options": {"temperature": 0, "seed": self.seed, "num_ctx": 8192},
+                "format": build_output_schema(sections),
+                "options": {
+                    "temperature": 0,
+                    "seed": self.seed,
+                    "num_ctx": 8192,
+                    "num_predict": MAX_OUTPUT_TOKENS,
+                },
                 "messages": [
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": build_user_message(rule, sections)},

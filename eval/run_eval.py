@@ -27,11 +27,18 @@ def build_assessor(name: str, model: str | None, effort: str | None):
     return ClaudeAssessor(model=model or DEFAULT_MODEL, effort=effort or DEFAULT_EFFORT)
 
 
+def git_output(*args: str) -> str:
+    result = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, check=False)
+    return result.stdout.strip()
+
+
 def current_commit() -> str:
-    result = subprocess.run(
-        ["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=False
-    )
-    return result.stdout.strip() or "unknown"
+    return git_output("rev-parse", "--short", "HEAD") or "unknown"
+
+
+def tree_is_dirty() -> bool:
+    """Report tracked changes, because the commit alone wouldn't reproduce this run."""
+    return bool(git_output("status", "--porcelain", "--untracked-files=no"))
 
 
 def build_retriever(name: str):
@@ -70,7 +77,12 @@ def main() -> int:
             return 2
         cases = cases[: args.limit]
 
-    report = {"commit": current_commit(), "split": args.split, "partial_run": args.limit is not None}
+    report = {
+        "commit": current_commit(),
+        "dirty_tree": tree_is_dirty(),
+        "split": args.split,
+        "partial_run": args.limit is not None,
+    }
     if args.experiment == "retrieval":
         report |= {"retriever": args.retriever}
         report |= evaluate_retrieval(cases, build_retriever(args.retriever))

@@ -33,6 +33,8 @@ eval/datasets/healthcare_it/ Labelled cases (dev and held-out)
 eval/validate_cases.py       Checks the cases against the documents
 eval/review_labels.py        Blind label review and agreement check
 eval/run_eval.py             Retrieval and assessment experiments
+eval/compare_reports.py      Compares two evaluation reports
+eval/results/                Development reports
 src/reqtrace/                Document loading, retrieval, and scoring
 tests/                       Tests for the validator and dataset
 ```

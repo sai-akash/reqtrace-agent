@@ -46,6 +46,47 @@ class FindingOutput(BaseModel):
     citations: list[CitationOutput]
 
 
+MAX_CITATIONS = 6
+
+
+def build_output_schema(sections: Sequence[Section]) -> dict:
+    """Limit citations to the supplied sections, and require them unless abstaining.
+
+    This controls the output's shape only. Quotes still need `check_citations`.
+    """
+    abstain = {"const": "insufficient_evidence"}
+    if not sections:
+        return _finding_schema(abstain, {"type": "array", "maxItems": 0})
+    citation = {
+        "type": "object",
+        "properties": {
+            "section": {"enum": list(dict.fromkeys(section.title for section in sections))},
+            "quote": {"type": "string", "minLength": 1},
+        },
+        "required": ["section", "quote"],
+        "additionalProperties": False,
+    }
+    citations = {"type": "array", "items": citation, "maxItems": MAX_CITATIONS}
+    return {
+        "anyOf": [
+            _finding_schema(
+                {"enum": ["supported", "contradicted", "not_applicable"]},
+                citations | {"minItems": 1},
+            ),
+            _finding_schema(abstain, citations),
+        ]
+    }
+
+
+def _finding_schema(verdict: dict, citations: dict) -> dict:
+    return {
+        "type": "object",
+        "properties": {"verdict": verdict, "citations": citations},
+        "required": ["verdict", "citations"],
+        "additionalProperties": False,
+    }
+
+
 class AssessmentError(RuntimeError):
     """The model returned no usable finding. This counts as a wrong answer."""
 

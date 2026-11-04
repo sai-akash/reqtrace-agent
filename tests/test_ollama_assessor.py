@@ -9,7 +9,7 @@ import pytest
 from reqtrace.documents import Rule, Section
 from reqtrace.evaluation import evaluate_assessor, load_cases
 from reqtrace.ollama_assessor import OllamaAssessor, OllamaUnavailableError
-from reqtrace.prompting import SYSTEM_PROMPT, AssessmentError
+from reqtrace.prompting import SYSTEM_PROMPT, AssessmentError, build_output_schema
 
 RULE = Rule("CHG-1", "Test evidence", "A test must be recorded.")
 SECTIONS = [Section("CR-1", "4. Testing", "Tested on 1 May. Outcome: passed.")]
@@ -68,7 +68,7 @@ def test_request_uses_schema_system_prompt_and_fixed_seed(server):
     assessor(server).assess(RULE, SECTIONS)
     body = server["requests"][0]
     assert body["stream"] is False
-    assert body["format"]["properties"]["verdict"]["enum"][0] == "supported"
+    assert body["format"] == build_output_schema(SECTIONS)
     assert body["options"]["temperature"] == 0
     assert body["options"]["seed"] == 42
     assert body["messages"][0] == {"role": "system", "content": SYSTEM_PROMPT}

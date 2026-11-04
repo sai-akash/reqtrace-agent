@@ -96,6 +96,24 @@ def _verdict_scores(gold: Sequence[str], predicted: Sequence[str]) -> dict:
     }
 
 
+def evidence_coverage(case: dict, citations: Sequence[dict]) -> tuple[int, int]:
+    """Count the gold facts covered by verified quotes from the same section.
+
+    Quotes match if one contains the other. This approximates completeness: it
+    can't recognise a different quote that states the same fact.
+    """
+    verified = [c for c in citations if c["verbatim"]]
+    covered = sum(
+        any(
+            c["section"] == gold["section"]
+            and (c["quote"].strip() in gold["quote"] or gold["quote"] in c["quote"])
+            for c in verified
+        )
+        for gold in case["gold_evidence"]
+    )
+    return covered, len(case["gold_evidence"])
+
+
 def evaluate_assessor(
     cases: Sequence[dict],
     assessor: Assessor,
@@ -117,6 +135,7 @@ def evaluate_assessor(
     rules = rules or load_rules()
     gold, raw, checked, details = [], [], [], []
     verbatim = cited = sections_found = sections_expected = 0
+    facts_covered = facts_expected = complete_cases = correct_and_complete = 0
     input_tokens = output_tokens = 0
     served_by: Counter[str] = Counter()
     downgrades: Counter[str] = Counter()
@@ -155,6 +174,11 @@ def evaluate_assessor(
         # An invented quote doesn't count as finding the section.
         sections_found += len(expected & {c["section"] for c in citations if c["verbatim"]})
         sections_expected += len(expected)
+        covered, total = evidence_coverage(case, citations)
+        facts_covered += covered
+        facts_expected += total
+        complete_cases += covered == total
+        correct_and_complete += covered == total and check.verdict == case["gold_verdict"]
         details.append(
             {
                 "case_id": case["case_id"],
@@ -164,6 +188,8 @@ def evaluate_assessor(
                 "downgrade_reason": check.downgrade_reason,
                 "context_has_gold": expected <= {section.title for section in context},
                 "citations": citations,
+                "gold_facts_covered": covered,
+                "gold_facts_expected": total,
                 "error": error,
             }
         )
@@ -183,6 +209,9 @@ def evaluate_assessor(
         },
         "citation_verbatim_rate": _safe_ratio(verbatim, cited),
         "gold_section_citation_recall": _safe_ratio(sections_found, sections_expected),
+        "gold_fact_recall": _safe_ratio(facts_covered, facts_expected),
+        "complete_evidence_rate": complete_cases / len(cases),
+        "correct_with_complete_evidence": correct_and_complete / len(cases),
         "failed_calls": sum(row["error"] is not None for row in details),
         "served_by": dict(served_by),
         "input_tokens": input_tokens,
