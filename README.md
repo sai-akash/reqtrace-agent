@@ -32,6 +32,12 @@ CHG-2: contradicted
 
 The verdict is correct, but the citation is incomplete because it leaves out the Tier 1 classification. The evaluation measures gaps like this.
 
+### A full review
+
+<img src="docs/images/terminal_review.png" alt="Terminal output of a full CR-103 review: findings for all 8 rules, then a prompt where a named person approves the export." width="760">
+
+*Text from a real run on CR-103, drawn as an image, with scripted answers and a placeholder name. The model isn't always right: its CHG-1 verdict here should be `contradicted`, and the citation check can't catch that because the quote is real.*
+
 ## How it works
 
 ```mermaid
@@ -67,6 +73,11 @@ These are **development results** from 24 synthetic cases, using `qwen2.5:7b`. I
 
 ### Citation checks
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/citation_results_dark.png">
+  <img src="docs/images/citation_results_light.png" alt="Bar chart: accuracy after citation checks rose from 0.29 to 0.79, quotes found in the cited section from 0.82 to 0.96, and expected facts covered from 0.27 to 0.64." width="760">
+</picture>
+
 | Metric | Before schema constraints | After |
 |---|---:|---:|
 | Accuracy after citation checks | 0.29 | **0.79** |
@@ -86,6 +97,11 @@ The model's verdicts didn't change. It had often left out its evidence, so the c
 For this small local model, a code-controlled workflow was far more reliable. The model-driven modes ran on one change request only, and a stronger model might do much better.
 
 ### Prompt injection
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/injection_results_dark.png">
+  <img src="docs/images/injection_results_light.png" alt="Bar chart of verdicts changed out of 24: direct instruction 6 without the screen and 0 with it; addressed note 3 and 0; altered spelling 2 and 2; false claim 1 and 1." width="760">
+</picture>
 
 | Attack added to the document | Verdicts changed without the screen (of 24) | With the screen |
 |---|---:|---:|
@@ -143,9 +159,9 @@ src/reqtrace/            Tools, approval state, audit log, screening, retrieval,
 domains/healthcare_it/   Fictional policy and change requests
 eval/datasets/           Labelled cases (dev and held-out)
 eval/results/            Saved development reports
-eval/                    Evaluation, comparison, and label review scripts
+eval/                    Evaluation, comparison, label review, and figure scripts
 tests/                   Automated tests, including approval and tampering behaviour
-docs/                    Scenario spec, guidelines, label decisions, and results
+docs/                    Scenario spec, guidelines, label decisions, results, and images
 ```
 
 ## Next steps

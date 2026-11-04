@@ -1,0 +1,26 @@
+Preliminary findings for CR-103
+
+CHG-1: not_applicable
+  [verified] 4. Testing: The patch is certified by the vendor, so no testing in a non-production environment is planned.
+CHG-2: contradicted
+  [verified] 5. Rollback: Estimated rollback time: 90 minutes.
+  Follow-up: Can the estimated rollback time be reduced to meet the 60-minute requirement for Tier 1 systems, or is there a reason it cannot?
+CHG-3: contradicted
+  [verified] 3. Schedule: Deployment is planned for Saturday 21 November 2026 at 22:00 local time.
+  Follow-up: Can the deployment date be changed to a Sunday between 01:00 and 05:00 local time as required by the policy?
+CHG-4: supported
+  [verified] 6. Approvals: System owner approved on 3 November 2026. Change Advisory Board approved on 4 November 2026.
+DAT-1: not_applicable
+  [verified] 4. Testing: The patch is certified by the vendor, so no testing in a non-production environment is planned.
+SEC-1: insufficient_evidence
+  Follow-up: How will the vendor's remote access during the patch application meet the requirement of using multi-factor authentication (MFA) and being limited to no more than 72 hours?
+SEC-2: not_applicable
+  [verified] 8. Interfaces: This change does not add or modify any interfaces.
+BCK-1: not_applicable
+  [verified] 9. Database: This change makes no database schema or stored data changes.
+
+This is a preliminary review, not a compliance decision.
+Type approve or reject: approve
+Your name: A Reviewer
+Report: runs/CR-103_20261104T171342Z/CR-103_review.md
+Audit log: runs/CR-103_20261104T171342Z/audit.jsonl
