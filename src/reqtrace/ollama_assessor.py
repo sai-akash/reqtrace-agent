@@ -13,6 +13,8 @@ from pydantic import ValidationError
 from reqtrace.assessment import Citation, Finding
 from reqtrace.documents import Rule, Section
 from reqtrace.prompting import (
+    FOLLOW_UP_PROMPT,
+    FOLLOW_UP_SCHEMA,
     SYSTEM_PROMPT,
     AssessmentError,
     FindingOutput,
@@ -23,6 +25,7 @@ from reqtrace.prompting import (
 DEFAULT_MODEL = "qwen2.5:7b"
 DEFAULT_HOST = "http://localhost:11434"
 MAX_OUTPUT_TOKENS = 1024
+CONTEXT_TOKENS = 8192
 
 
 class OllamaUnavailableError(Exception):
@@ -68,6 +71,60 @@ class OllamaAssessor:
         models = self._request("/api/tags").get("models", [])
         return next((m.get("digest") for m in models if m.get("name") == self.model), None)
 
+    def chat(self, messages: list[dict], tools: list[dict]) -> dict:
+        """Send one tool-calling step. Tool arguments can't use a fixed output schema."""
+        response = self._request(
+            "/api/chat",
+            {
+                "model": self.model,
+                "stream": False,
+                "tools": tools,
+                "options": {
+                    "temperature": 0,
+                    "seed": self.seed,
+                    "num_ctx": CONTEXT_TOKENS,
+                    "num_predict": MAX_OUTPUT_TOKENS,
+                },
+                "messages": messages,
+            },
+        )
+        if response.get("done_reason") != "stop":
+            raise AssessmentError(f"No usable step: done_reason={response.get('done_reason')}")
+        return response
+
+    def draft_follow_up(self, rule: Rule, sections: Sequence[Section], verdict: str) -> str:
+        """Draft a question for the author. A person reviews it before any export."""
+        response = self._request(
+            "/api/chat",
+            {
+                "model": self.model,
+                "stream": False,
+                "format": FOLLOW_UP_SCHEMA,
+                "options": {
+                    "temperature": 0,
+                    "seed": self.seed,
+                    "num_ctx": CONTEXT_TOKENS,
+                    "num_predict": MAX_OUTPUT_TOKENS,
+                },
+                "messages": [
+                    {"role": "system", "content": FOLLOW_UP_PROMPT},
+                    {
+                        "role": "user",
+                        "content": f"Finding: {verdict}\n\n{build_user_message(rule, sections)}",
+                    },
+                ],
+            },
+        )
+        if response.get("done_reason") != "stop":
+            raise AssessmentError(f"No usable question for {rule.rule_id}.")
+        try:
+            question = json.loads(response["message"]["content"])["question"].strip()
+        except (KeyError, TypeError, AttributeError, json.JSONDecodeError) as error:
+            raise AssessmentError(f"Invalid question for {rule.rule_id}: {error}") from error
+        if not question:
+            raise AssessmentError(f"Empty question for {rule.rule_id}.")
+        return question
+
     def assess(self, rule: Rule, sections: Sequence[Section]) -> Finding:
         response = self._request(
             "/api/chat",
@@ -78,7 +135,7 @@ class OllamaAssessor:
                 "options": {
                     "temperature": 0,
                     "seed": self.seed,
-                    "num_ctx": 8192,
+                    "num_ctx": CONTEXT_TOKENS,
                     "num_predict": MAX_OUTPUT_TOKENS,
                 },
                 "messages": [

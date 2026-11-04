@@ -121,5 +121,25 @@ def test_digest_lookup(server):
     assert OllamaAssessor(model="other:1b", host=server["host"]).model_digest() is None
 
 
+def test_follow_up_returns_the_question_and_rejects_bad_output(server):
+    server["reply"] = chat_reply(content=json.dumps({"question": "Who approved this?"}))
+    assert assessor(server).draft_follow_up(RULE, SECTIONS, "contradicted") == "Who approved this?"
+    assert "Finding: contradicted" in server["requests"][0]["messages"][1]["content"]
+    server["reply"] = chat_reply(content="not json")
+    with pytest.raises(AssessmentError):
+        assessor(server).draft_follow_up(RULE, SECTIONS, "contradicted")
+    server["reply"] = chat_reply(content=json.dumps({"question": "  "}))
+    with pytest.raises(AssessmentError):
+        assessor(server).draft_follow_up(RULE, SECTIONS, "contradicted")
+
+
+def test_chat_sends_tools_without_a_fixed_schema(server):
+    tools = [{"type": "function", "function": {"name": "x"}}]
+    response = assessor(server).chat([{"role": "user", "content": "hi"}], tools)
+    assert server["requests"][0]["tools"] == tools
+    assert "format" not in server["requests"][0]
+    assert response["model"] == "test-model:1b"
+
+
 def test_host_without_scheme_is_accepted():
     assert OllamaAssessor(host="localhost:11434").host == "http://localhost:11434"

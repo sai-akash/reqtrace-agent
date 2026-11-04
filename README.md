@@ -2,7 +2,7 @@
 
 An agent that checks engineering evidence against requirements, cites its sources, flags gaps, drafts follow-up questions and tests, and waits for human approval.
 
-**Status: evaluation data, retrieval, an evaluation runner, single-call LLM assessors, and citation checks are in place. The agent isn't built yet, and there are no published results. The labels are frozen as `labels-v1`, without an independent human review.**
+**Status: evaluation data, retrieval, an evaluation runner, single-call LLM assessors, citation checks, and a controlled agent workflow with human approval and an audit log are in place. There are no published results, and hidden instructions in a document can still change verdicts. The labels are frozen as `labels-v1`, without an independent human review.**
 
 | Assessor | Status |
 |---|---|
@@ -34,6 +34,7 @@ eval/validate_cases.py       Checks the cases against the documents
 eval/review_labels.py        Blind label review and agreement check
 eval/run_eval.py             Retrieval and assessment experiments
 eval/compare_reports.py      Compares two evaluation reports
+eval/run_agent_eval.py       Runs the agent workflow on dev change requests
 eval/results/                Development reports
 src/reqtrace/                Document loading, retrieval, and scoring
 tests/                       Tests for the validator and dataset
