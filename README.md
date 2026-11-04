@@ -1,49 +1,117 @@
 # reqtrace-agent
 
-An agent that checks engineering evidence against requirements, cites its sources, flags gaps, drafts follow-up questions and tests, and waits for human approval.
+**An agentic AI prototype that reviews healthcare IT change requests against policy rules, cites its evidence, and stops for human approval.**
 
-**Status: evaluation data, retrieval, an evaluation runner, single-call LLM assessors, citation checks, and a controlled agent workflow with human approval and an audit log are in place. There are no published results, and a rule-based screen catches direct injection attempts, but obfuscated text and false claims can still change verdicts. The labels are frozen as `labels-v1`, without an independent human review.**
+Before an IT system changes, someone has to check that the request meets policy: was it tested, can it be rolled back, was it approved? An LLM can help with that review, but a confident answer with no evidence is a risk in a healthcare setting.
 
-| Assessor | Status |
-|---|---|
-| Ollama (local, free) | Run on the dev split with `qwen2.5:7b`; development runs only, so no published scores |
-| Claude API | Tested against a fake API only, because it hasn't been run with a real key |
+This prototype explores how to make that kind of agent testable and governable. Every verdict must cite the source text, every step is logged, and a named person decides whether anything leaves the system. The evaluation records what works and what still fails.
 
-## First demo: IT change request review
+> **This is a proof of concept using invented data.** It produces a preliminary review, not a compliance decision. All organisations, systems, policies, and change requests are fictional, and the repo contains no patient or company data.
 
-The agent reads a fictional IT change request, compares it with a fictional IT policy, and gives each policy rule one of four verdicts:
+## What it does
+
+The input is a change request and an IT policy with 8 rules. For each rule, the prototype returns a verdict, verbatim citations, and a follow-up question if the rule isn't shown to be met.
 
 | Verdict | Meaning |
 |---|---|
 | `supported` | The change request shows that the rule is met |
-| `contradicted` | The change request shows that the rule is not met |
-| `insufficient_evidence` | The rule applies, but the change request doesn't show whether it is met |
+| `contradicted` | The change request shows that the rule isn't met |
+| `insufficient_evidence` | The rule applies, or might, but the text doesn't settle it |
 | `not_applicable` | The rule doesn't apply to this change |
 
-A person reviews the findings and approves any export. The output is a preliminary review, not a compliance decision.
+### Example output
 
-See the [scenario spec](docs/scenario_healthcare_it.md) for inputs, outputs, metrics, and build order.
-
-## Repository layout
+This is a real result from the local model, reviewing rule CHG-2 for fictional change request CR-103. The rule limits rollback on Tier 1 systems to 60 minutes.
 
 ```text
-docs/                        Scenario spec and annotation guidelines
-domains/healthcare_it/       Fictional policy and change requests
-eval/datasets/healthcare_it/ Labelled cases (dev and held-out)
-eval/validate_cases.py       Checks the cases against the documents
-eval/review_labels.py        Blind label review and agreement check
-eval/run_eval.py             Retrieval and assessment experiments
-eval/compare_reports.py      Compares two evaluation reports
-eval/run_agent_eval.py       Runs the agent workflow on dev change requests
-eval/results/                Development reports
-src/reqtrace/                Document loading, retrieval, and scoring
-tests/                       Tests for the validator and dataset
+CHG-2: contradicted
+  [verified] 5. Rollback: Estimated rollback time: 90 minutes.
+  Follow-up: Can the estimated rollback time be reduced to meet the 60-minute
+  requirement for Tier 1 systems, or is there a reason it cannot?
 ```
 
-## Check the evaluation data
+The verdict is correct, but the citation is incomplete because it leaves out the Tier 1 classification. The evaluation measures gaps like this.
+
+## How it works
+
+```mermaid
+flowchart TD
+    A[Change request] --> B[Screen for text addressed to an AI]
+    B --> C[Retrieve the top 3 sections for each rule]
+    C --> D[LLM returns a verdict and citations in a fixed schema]
+    D --> E[Code checks each quote against its source section]
+    E -->|Quote or citation missing| F[Downgrade to insufficient_evidence]
+    E -->|Verified| G[Draft finding]
+    F --> G
+    G --> H[Draft follow-up question if needed]
+    H --> I{Named person approves?}
+    I -->|Yes| J[Export report]
+    I -->|No| K[Nothing exported]
+```
+
+All of these steps run through audited tools, so refused actions are logged too. The model has no tool for recording a decision, and export needs both approval and unchanged findings.
+
+## What the project covers
+
+| Area | What's here |
+|---|---|
+| **Agent design** | Six audited tools (`read_change_request`, `search_policy`, `verify_quote`, `save_finding`, `request_approval`, `export_report`), plus a comparison of model-driven and code-controlled workflows |
+| **Generative AI and RAG** | A local LLM through Ollama, embedding retrieval with a BM25 comparison, and structured output with JSON Schema |
+| **Testing and evaluation** | 40 labelled cases split by document, a frozen label set, 156 automated tests, and a prompt injection test suite |
+| **Governance and controls** | Human approval, a hash-chained audit log, citation checks, document screening, and a record of known limits |
+| **Documentation** | [Scenario spec](docs/scenario_healthcare_it.md), [annotation guidelines](docs/annotation_guidelines.md), [label decisions](docs/label_decisions.md), and written results |
+
+## Results so far
+
+These are **development results** from 24 synthetic cases, using `qwen2.5:7b`. I chose the fixes after seeing these same cases, so the scores are optimistic. The 16 held-out cases haven't been run.
+
+### Citation checks
+
+| Metric | Before schema constraints | After |
+|---|---:|---:|
+| Accuracy after citation checks | 0.29 | **0.79** |
+| Quotes found in the cited section | 0.82 | 0.96 |
+| Expected facts covered by citations | 0.27 | 0.64 |
+
+The model's verdicts didn't change. It had often left out its evidence, so the checks were downgrading correct answers.
+
+### Who should control the workflow?
+
+| Mode | Who picks each step | Cases | Correct after check |
+|---|---|---:|---:|
+| `free` | Model | 8 | 3 |
+| `scoped` (one conversation per rule) | Model | 8 | 1 |
+| `workflow` | Code | 24 | **19** |
+
+For this small local model, a code-controlled workflow was far more reliable. The model-driven modes ran on one change request only, and a stronger model might do much better.
+
+### Prompt injection
+
+| Attack added to the document | Verdicts changed without the screen (of 24) | With the screen |
+|---|---:|---:|
+| Direct instruction naming a tool | 6 | 0 |
+| Note addressed to the AI reviewer | 3 | 0 |
+| Instruction with altered spelling | 2 | 2 |
+| False compliance claim in plain prose | 1 | 1 |
+
+In every run, the model made no export attempts and nothing bypassed approval. **Hidden text can still change verdicts, so this remains an open risk.** Read the [agent results](docs/dev_agent_results.md) and [citation results](docs/dev_citation_results.md) for how each figure was measured.
+
+## Known limitations
+
+- **Labels:** they're one author's judgment and have had no independent human review. An AI second opinion agreed, but it had already seen some labels, so it doesn't count as validation.
+- **Data:** the 5 change requests are short, synthetic, and from one author, so results can't support claims about real documents.
+- **Retrieval:** it's an easy test here, with only 9 short sections per document.
+- **Evidence:** the citation check shows that quotes exist, not that they prove the verdict.
+- **Follow-up questions:** these aren't scored, and some are weak.
+- **Access control:** the reviewer's name is typed in, with no authentication.
+- **Claude adapter:** it has only run against a fake API, and it can't run the full workflow yet.
+
+## Try it
+
+You need Python 3.11 or later. To run the tests and check the data, you don't need a model:
 
 ```bash
-python -m pip install -e ".[dev]"
+python -m pip install -e ".[dev,embeddings]"
 ```
 
 ```bash
@@ -54,6 +122,37 @@ python eval/validate_cases.py
 python -m pytest
 ```
 
-## Data notice
+To run a review, install [Ollama](https://ollama.com) and download the model (about 4.7 GB):
 
-All organisations, systems, people, policies, and change requests here are invented. The repo contains no patient data and no data from any real company. The labels are one author's judgment and haven't had an independent human review. Any published results must say so. With only 5 source documents, results can't support broad claims about generalisation. See the [limitations](docs/scenario_healthcare_it.md#limitations-to-state-in-every-evaluation-report).
+```bash
+ollama pull qwen2.5:7b
+```
+
+This shows the findings, then exports a report only if you type `approve` and your name:
+
+```bash
+python -m reqtrace.cli CR-103
+```
+
+Reviews take a few minutes on a laptop CPU. Each run saves its audit log and any report in `runs/`.
+
+## Repository layout
+
+```text
+src/reqtrace/            Tools, approval state, audit log, screening, retrieval, and agent workflows
+domains/healthcare_it/   Fictional policy and change requests
+eval/datasets/           Labelled cases (dev and held-out)
+eval/results/            Saved development reports
+eval/                    Evaluation, comparison, and label review scripts
+tests/                   Automated tests, including approval and tampering behaviour
+docs/                    Scenario spec, guidelines, label decisions, and results
+```
+
+## Next steps
+
+- Address the open injection risk, and test with new attack wording and a harmless-text control
+- Add a route to revise and resubmit rejected reviews
+- Compare plain tool calling with LangGraph
+- Add a FastAPI service and Docker packaging
+- Write the governance pack: agent card, permission matrix, and risk register
+- Get an independent label review, then run the held-out cases once

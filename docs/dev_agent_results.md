@@ -77,7 +77,7 @@ In all of these runs, every review reached approval, the model made no export at
 ## Limits
 
 - **Audit log:** the chain reveals edits, reordering, and removal, except removal from the end of the file. Someone who can rewrite the whole file can rebuild the chain, so the latest hash would need storing elsewhere.
-- **Terminal review:** tests cover it with a fake assessor. It hasn't been run end to end with a real model and a person.
+- **Terminal review:** tests cover it with a fake assessor, and it ran once end to end on CR-103 with the real model and scripted answers. No person has used it yet.
 - **Reviewer identity:** the name is typed in, with no authentication.
 - **Rejection:** a rejected review ends there, with no route to revise and resubmit.
 - **Claude:** the workflow's follow-up step exists only for Ollama, so Claude can't run this workflow yet.
