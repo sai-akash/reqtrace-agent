@@ -19,6 +19,10 @@ from reqtrace.review import ReviewSession
 
 def render_findings(session: ReviewSession) -> str:
     lines = [f"Preliminary findings for {session.change_request_id}", ""]
+    if session.quarantined:
+        lines.append("WARNING: this text looked like instructions to an AI and was hidden from the model:")
+        lines += [f"  {item.section}: {item.text}" for item in session.quarantined]
+        lines.append("")
     for rule_id in session.rules:
         finding = session.findings[rule_id]
         lines.append(f"{rule_id}: {finding.verdict}")

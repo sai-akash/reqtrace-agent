@@ -2,7 +2,7 @@
 
 An agent that checks engineering evidence against requirements, cites its sources, flags gaps, drafts follow-up questions and tests, and waits for human approval.
 
-**Status: evaluation data, retrieval, an evaluation runner, single-call LLM assessors, citation checks, and a controlled agent workflow with human approval and an audit log are in place. There are no published results, and hidden instructions in a document can still change verdicts. The labels are frozen as `labels-v1`, without an independent human review.**
+**Status: evaluation data, retrieval, an evaluation runner, single-call LLM assessors, citation checks, and a controlled agent workflow with human approval and an audit log are in place. There are no published results, and a rule-based screen catches direct injection attempts, but obfuscated text and false claims can still change verdicts. The labels are frozen as `labels-v1`, without an independent human review.**
 
 | Assessor | Status |
 |---|---|

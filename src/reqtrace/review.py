@@ -18,6 +18,7 @@ from reqtrace.documents import (
     load_rules,
 )
 from reqtrace.retrieval import Bm25Retriever
+from reqtrace.screening import QuarantinedText, screen_sections
 
 VERDICTS = ("supported", "contradicted", ABSTAIN, "not_applicable")
 NEEDS_FOLLOW_UP = frozenset({"contradicted", ABSTAIN})
@@ -65,6 +66,7 @@ class ReviewSession:
         export_dir: Path,
         rules: dict[str, Rule] | None = None,
         sections: Sequence[Section] | None = None,
+        screen: bool = True,
     ) -> None:
         if sections is None:
             if change_request_id not in known_change_requests():
@@ -74,8 +76,18 @@ class ReviewSession:
         self.audit = audit
         self.export_dir = export_dir
         self.rules = rules or load_rules()
+        self.document_digest = _digest([asdict(section) for section in sections])
         self.sections = list(sections)
-        self.document_digest = _digest([asdict(section) for section in self.sections])
+        self.quarantined: list[QuarantinedText] = []
+        if screen:
+            self.sections, self.quarantined = screen_sections(sections)
+        if self.quarantined:
+            self.audit.record(
+                "system",
+                "screen_document",
+                {"quarantined": [asdict(item) for item in self.quarantined]},
+                "flagged",
+            )
         self.findings: dict[str, SavedFinding] = {}
         self.state = "drafting"
         self.document_read = False
@@ -87,6 +99,7 @@ class ReviewSession:
             {
                 "change_request": self.change_request_id,
                 "document": self.document_digest,
+                "quarantined": [asdict(item) for item in self.quarantined],
                 "findings": [asdict(self.findings[rule_id]) for rule_id in sorted(self.findings)],
             }
         )
@@ -141,6 +154,7 @@ class ReviewSession:
         return {
             "change_request_id": self.change_request_id,
             "document_digest": self.document_digest,
+            "quarantined_passages": len(self.quarantined),
             "sections": [{"title": section.title, "text": section.text} for section in self.sections],
         }
 
@@ -254,6 +268,14 @@ class ReviewSession:
             f"- Findings digest: `{self.approved_digest}`",
             "",
         ]
+        if self.quarantined:
+            lines += ["## Document text hidden from the model", ""]
+            lines += [
+                "This text looked like instructions to an AI system. Check it against the source.",
+                "",
+            ]
+            lines += [f"- {item.section}: \"{item.text}\"" for item in self.quarantined]
+            lines.append("")
         for rule_id in self.rules:
             finding = self.findings[rule_id]
             lines += [f"## {rule_id}: `{finding.verdict}`", ""]
