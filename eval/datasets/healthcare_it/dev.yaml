@@ -1,0 +1,185 @@
+# Development split: use these cases for building and tuning.
+split: dev
+cases:
+  # CR-101
+  - case_id: HIT-101-CHG-1
+    change_request: CR-101
+    rule: CHG-1
+    gold_verdict: supported
+    gold_evidence:
+      - {section: "4. Testing", quote: "Tested in the STAGING-LAB environment on 12 October 2026. Outcome: all 48 test scenarios passed."}
+    rationale: Records a non-production test, its date, and its outcome.
+  - case_id: HIT-101-CHG-2
+    change_request: CR-101
+    rule: CHG-2
+    gold_verdict: supported
+    gold_evidence:
+      - {section: "5. Rollback", quote: "Estimated rollback time: 45 minutes."}
+      - {section: "5. Rollback", quote: "Reinstall version 6.2 from the saved package and restore the previous configuration."}
+      - {section: "2. System", quote: "Classification: Tier 1."}
+    rationale: A plan is given, and 45 minutes is within the Tier 1 limit.
+  - case_id: HIT-101-CHG-3
+    change_request: CR-101
+    rule: CHG-3
+    gold_verdict: supported
+    gold_evidence:
+      - {section: "3. Schedule", quote: "Sunday 22 November 2026, from 02:00 to 04:00 local time"}
+      - {section: "2. System", quote: "Classification: Tier 1."}
+      - {section: "2. System", quote: "This is not an emergency change."}
+    rationale: The Tier 1 deployment falls inside the Sunday window.
+  - case_id: HIT-101-CHG-4
+    change_request: CR-101
+    rule: CHG-4
+    gold_verdict: insufficient_evidence
+    gold_evidence:
+      - {section: "6. Approvals", quote: "System owner approved on 2 November 2026."}
+      - {section: "2. System", quote: "Classification: Tier 1."}
+    rationale: Owner approval is recorded, but CAB approval is not mentioned.
+  - case_id: HIT-101-DAT-1
+    change_request: CR-101
+    rule: DAT-1
+    gold_verdict: supported
+    gold_evidence:
+      - {section: "4. Testing", quote: "Testing used synthetic HL7 messages"}
+    rationale: The test data is synthetic.
+  - case_id: HIT-101-SEC-1
+    change_request: CR-101
+    rule: SEC-1
+    gold_verdict: not_applicable
+    gold_evidence:
+      - {section: "7. Vendor involvement", quote: "No vendor remote access is required."}
+    rationale: The change involves no vendor remote access.
+  - case_id: HIT-101-SEC-2
+    change_request: CR-101
+    rule: SEC-2
+    gold_verdict: insufficient_evidence
+    gold_evidence:
+      - {section: "8. Interfaces", quote: "Traffic on this interface will be encrypted."}
+    rationale: Encryption is stated, but the TLS version is not.
+  - case_id: HIT-101-BCK-1
+    change_request: CR-101
+    rule: BCK-1
+    gold_verdict: not_applicable
+    gold_evidence:
+      - {section: "9. Database", quote: "This change makes no database schema or stored data changes."}
+    rationale: The change does not alter a schema or stored data.
+
+  # CR-102
+  - case_id: HIT-102-CHG-1
+    change_request: CR-102
+    rule: CHG-1
+    gold_verdict: supported
+    gold_evidence:
+      - {section: "4. Testing", quote: "Tested in the TEST-RAD environment on 3 November 2026. Outcome: all migration scripts completed without errors."}
+    rationale: Records a non-production test, its date, and its outcome.
+  - case_id: HIT-102-CHG-2
+    change_request: CR-102
+    rule: CHG-2
+    gold_verdict: insufficient_evidence
+    gold_evidence:
+      - {section: "5. Rollback", quote: "Restore the database from the most recent backup."}
+    rationale: A plan is given, but there is no estimated rollback time.
+  - case_id: HIT-102-CHG-3
+    change_request: CR-102
+    rule: CHG-3
+    gold_verdict: not_applicable
+    gold_evidence:
+      - {section: "2. System", quote: "Classification: Tier 2."}
+    rationale: The rule applies to Tier 1 systems only.
+  - case_id: HIT-102-CHG-4
+    change_request: CR-102
+    rule: CHG-4
+    gold_verdict: not_applicable
+    gold_evidence:
+      - {section: "2. System", quote: "Classification: Tier 2."}
+    rationale: The rule applies to Tier 1 systems only.
+  - case_id: HIT-102-DAT-1
+    change_request: CR-102
+    rule: DAT-1
+    gold_verdict: contradicted
+    gold_evidence:
+      - {section: "4. Testing", quote: "Testing used a copy of last month's production worklist, including patient names."}
+    rationale: Identifiable patient data was used in a test environment.
+  - case_id: HIT-102-SEC-1
+    change_request: CR-102
+    rule: SEC-1
+    gold_verdict: contradicted
+    gold_evidence:
+      - {section: "7. Vendor involvement", quote: "Access will stay open for 7 days."}
+    rationale: MFA is used, but 7 days exceeds the 72-hour limit.
+  - case_id: HIT-102-SEC-2
+    change_request: CR-102
+    rule: SEC-2
+    gold_verdict: not_applicable
+    gold_evidence:
+      - {section: "8. Interfaces", quote: "This change does not add or modify any interfaces."}
+    rationale: No interface is added or modified.
+  - case_id: HIT-102-BCK-1
+    change_request: CR-102
+    rule: BCK-1
+    gold_verdict: contradicted
+    gold_evidence:
+      - {section: "9. Database", quote: "A full backup is scheduled for 14 November 2026, five days before deployment."}
+    rationale: Five days exceeds the 24-hour limit.
+
+  # CR-103
+  - case_id: HIT-103-CHG-1
+    change_request: CR-103
+    rule: CHG-1
+    gold_verdict: contradicted
+    gold_evidence:
+      - {section: "4. Testing", quote: "no testing in a non-production environment is planned"}
+    rationale: The request states that no non-production test is planned, and vendor certification isn't a recorded test.
+  - case_id: HIT-103-CHG-2
+    change_request: CR-103
+    rule: CHG-2
+    gold_verdict: contradicted
+    gold_evidence:
+      - {section: "5. Rollback", quote: "Estimated rollback time: 90 minutes."}
+      - {section: "2. System", quote: "Classification: Tier 1."}
+    rationale: 90 minutes exceeds the 60-minute Tier 1 limit.
+  - case_id: HIT-103-CHG-3
+    change_request: CR-103
+    rule: CHG-3
+    gold_verdict: contradicted
+    gold_evidence:
+      - {section: "3. Schedule", quote: "Saturday 21 November 2026 at 22:00 local time"}
+      - {section: "2. System", quote: "Classification: Tier 1."}
+      - {section: "2. System", quote: "This is not an emergency change."}
+    rationale: A non-emergency Tier 1 change is scheduled outside the Sunday window.
+  - case_id: HIT-103-CHG-4
+    change_request: CR-103
+    rule: CHG-4
+    gold_verdict: supported
+    gold_evidence:
+      - {section: "6. Approvals", quote: "System owner approved on 3 November 2026. Change Advisory Board approved on 4 November 2026."}
+      - {section: "2. System", quote: "Classification: Tier 1."}
+    rationale: Both required approvals are recorded.
+  - case_id: HIT-103-DAT-1
+    change_request: CR-103
+    rule: DAT-1
+    gold_verdict: not_applicable
+    gold_evidence:
+      - {section: "4. Testing", quote: "no testing in a non-production environment is planned"}
+    rationale: With no test planned, no test data is used.
+  - case_id: HIT-103-SEC-1
+    change_request: CR-103
+    rule: SEC-1
+    gold_verdict: insufficient_evidence
+    gold_evidence:
+      - {section: "7. Vendor involvement", quote: "The vendor will provide remote assistance during deployment."}
+    rationale: The text doesn't establish whether remote assistance includes remote access, so applicability is unclear.
+  - case_id: HIT-103-SEC-2
+    change_request: CR-103
+    rule: SEC-2
+    gold_verdict: not_applicable
+    gold_evidence:
+      - {section: "8. Interfaces", quote: "This change does not add or modify any interfaces."}
+    rationale: No interface is added or modified.
+  - case_id: HIT-103-BCK-1
+    change_request: CR-103
+    rule: BCK-1
+    gold_verdict: not_applicable
+    gold_evidence:
+      - {section: "9. Database", quote: "This change makes no database schema or stored data changes."}
+    rationale: The change does not alter a schema or stored data.

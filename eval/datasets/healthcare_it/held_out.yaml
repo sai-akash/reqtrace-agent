@@ -1,0 +1,123 @@
+# Held-out split: run once on the final system. Don't use it for building or tuning.
+split: held_out
+cases:
+  # CR-104
+  - case_id: HIT-104-CHG-1
+    change_request: CR-104
+    rule: CHG-1
+    gold_verdict: supported
+    gold_evidence:
+      - {section: "4. Testing", quote: "Tested in the STAGING-PHARM environment on 28 October 2026. Outcome: all 31 test scenarios passed."}
+    rationale: Records a non-production test, its date, and its outcome.
+  - case_id: HIT-104-CHG-2
+    change_request: CR-104
+    rule: CHG-2
+    gold_verdict: contradicted
+    gold_evidence:
+      - {section: "5. Rollback", quote: "The rollback plan will be written after deployment."}
+    rationale: The request states that no rollback plan will exist before deployment.
+  - case_id: HIT-104-CHG-3
+    change_request: CR-104
+    rule: CHG-3
+    gold_verdict: supported
+    gold_evidence:
+      - {section: "3. Schedule", quote: "Sunday 15 November 2026, from 01:30 to 03:30 local time"}
+      - {section: "2. System", quote: "Classification: Tier 1."}
+      - {section: "2. System", quote: "This is not an emergency change."}
+    rationale: The Tier 1 deployment falls inside the Sunday window.
+  - case_id: HIT-104-CHG-4
+    change_request: CR-104
+    rule: CHG-4
+    gold_verdict: insufficient_evidence
+    gold_evidence:
+      - {section: "6. Approvals", quote: "Change Advisory Board approved on 3 November 2026."}
+      - {section: "2. System", quote: "Classification: Tier 1."}
+    rationale: CAB approval is recorded, but owner approval is not mentioned.
+  - case_id: HIT-104-DAT-1
+    change_request: CR-104
+    rule: DAT-1
+    gold_verdict: insufficient_evidence
+    gold_evidence:
+      - {section: "4. Testing", quote: "Test data was taken from the pharmacy system."}
+    rationale: The request doesn't say whether the data was de-identified.
+  - case_id: HIT-104-SEC-1
+    change_request: CR-104
+    rule: SEC-1
+    gold_verdict: supported
+    gold_evidence:
+      - {section: "7. Vendor involvement", quote: "The cabinet vendor will connect remotely using MFA. Access is limited to 48 hours."}
+    rationale: MFA is used, and 48 hours is within the limit.
+  - case_id: HIT-104-SEC-2
+    change_request: CR-104
+    rule: SEC-2
+    gold_verdict: contradicted
+    gold_evidence:
+      - {section: "8. Interfaces", quote: "The interface will use TLS 1.0"}
+    rationale: TLS 1.0 is below the required TLS 1.2.
+  - case_id: HIT-104-BCK-1
+    change_request: CR-104
+    rule: BCK-1
+    gold_verdict: supported
+    gold_evidence:
+      - {section: "9. Database", quote: "A verified backup is scheduled for Saturday 14 November 2026 at 20:00 local time."}
+      - {section: "3. Schedule", quote: "Sunday 15 November 2026, from 01:30 to 03:30 local time"}
+    rationale: The backup is verified and is scheduled within 24 hours of the 01:30 deployment.
+
+  # CR-105
+  - case_id: HIT-105-CHG-1
+    change_request: CR-105
+    rule: CHG-1
+    gold_verdict: insufficient_evidence
+    gold_evidence:
+      - {section: "4. Testing", quote: "Testing is planned, and the results will be added later."}
+    rationale: No completed test is recorded yet.
+  - case_id: HIT-105-CHG-2
+    change_request: CR-105
+    rule: CHG-2
+    gold_verdict: supported
+    gold_evidence:
+      - {section: "5. Rollback", quote: "Estimated rollback time: 30 minutes."}
+      - {section: "5. Rollback", quote: "Disable the export job and restore the removed records from the archive."}
+    rationale: A plan and an estimated time are given.
+  - case_id: HIT-105-CHG-3
+    change_request: CR-105
+    rule: CHG-3
+    gold_verdict: not_applicable
+    gold_evidence:
+      - {section: "2. System", quote: "Classification: Tier 2."}
+    rationale: The rule applies to Tier 1 systems only.
+  - case_id: HIT-105-CHG-4
+    change_request: CR-105
+    rule: CHG-4
+    gold_verdict: not_applicable
+    gold_evidence:
+      - {section: "2. System", quote: "Classification: Tier 2."}
+    rationale: The rule applies to Tier 1 systems only.
+  - case_id: HIT-105-DAT-1
+    change_request: CR-105
+    rule: DAT-1
+    gold_verdict: supported
+    gold_evidence:
+      - {section: "4. Testing", quote: "The planned test data is a de-identified extract of the reporting database."}
+    rationale: DAT-1 restricts the data used, and the declared test data is de-identified.
+  - case_id: HIT-105-SEC-1
+    change_request: CR-105
+    rule: SEC-1
+    gold_verdict: not_applicable
+    gold_evidence:
+      - {section: "7. Vendor involvement", quote: "No vendor remote access is required."}
+    rationale: The change involves no vendor remote access.
+  - case_id: HIT-105-SEC-2
+    change_request: CR-105
+    rule: SEC-2
+    gold_verdict: contradicted
+    gold_evidence:
+      - {section: "8. Interfaces", quote: "The daily export will be sent over plain HTTP."}
+    rationale: Plain HTTP doesn't use TLS.
+  - case_id: HIT-105-BCK-1
+    change_request: CR-105
+    rule: BCK-1
+    gold_verdict: insufficient_evidence
+    gold_evidence:
+      - {section: "9. Database", quote: "A backup will be taken before the change."}
+    rationale: Neither verification nor timing is stated.
