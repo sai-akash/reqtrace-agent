@@ -72,7 +72,7 @@ No further prompt tuning was attempted, to avoid fitting the prompt to 24 cases.
 
 ## Reports
 
-Reports are in `eval/results/`: `baseline/` (commit `0b46c13`), `schema/` (commit `855f663`, clean tree), and the rejected `prompt/` attempt (uncommitted code, so not reproducible from its recorded commit). The `schema/` runs were repeated on this computer and gave identical case details for all 24 cases. To compare two:
+Reports are in `eval/results/`: `baseline/` (commit `7bb513e`), `schema/` (commit `55161a0`, clean tree), and the rejected `prompt/` attempt (uncommitted code, so not reproducible from its recorded commit). The `schema/` runs were repeated on this computer and gave identical case details for all 24 cases. To compare two:
 
 ```bash
 python eval/compare_reports.py eval/results/baseline/oracle_dev.json eval/results/schema/oracle_dev.json
