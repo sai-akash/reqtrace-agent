@@ -1,5 +1,7 @@
 """Regression tests for known citation failures, using small synthetic fixtures."""
 
+import pytest
+
 from reqtrace.assessment import Citation, Finding, check_citations
 from reqtrace.documents import Rule, Section
 from reqtrace.evaluation import evaluate_assessor, evidence_coverage, load_cases
@@ -110,3 +112,45 @@ def test_schema_with_no_sections_can_only_abstain():
     schema = build_output_schema([])
     assert schema["properties"]["verdict"] == {"const": "insufficient_evidence"}
     assert schema["properties"]["citations"]["maxItems"] == 0
+
+
+def test_abstention_can_have_no_citations():
+    check = check_citations(Finding("insufficient_evidence"), SECTIONS)
+    assert (check.verdict, check.downgrade_reason, check.unverified_quotes) == (
+        "insufficient_evidence",
+        None,
+        0,
+    )
+
+
+@pytest.mark.parametrize(
+    "citation",
+    [
+        Citation("5. Rollback", "An invented quote."),
+        Citation("2. System", "Estimated rollback time: 45 minutes."),
+    ],
+)
+def test_abstention_with_a_bad_citation_is_counted(citation):
+    check = check_citations(Finding("insufficient_evidence", (citation,)), SECTIONS)
+    assert check.verdict == "insufficient_evidence"
+    assert check.downgrade_reason is None
+    assert check.unverified_quotes == 1
+
+
+def test_abstention_with_a_real_citation_isnt_counted():
+    citation = Citation("2. System", "Classification: Tier 1.")
+    assert check_citations(Finding("insufficient_evidence", (citation,)), SECTIONS).unverified_quotes == 0
+
+
+def test_report_counts_abstentions_with_bad_quotes_and_earns_no_credit():
+    class Assessor:
+        def assess(self, rule, sections):
+            return Finding("insufficient_evidence", (Citation(sections[0].title, "An invented quote."),))
+
+    case = next(c for c in load_cases("dev") if c["gold_verdict"] == "insufficient_evidence")
+    report = evaluate_assessor([case], Assessor(), "oracle")
+    assert report["citation_check"]["abstentions_with_unverified_quotes"] == 1
+    assert report["citation_check"]["downgraded"] == 0
+    assert report["citation_verbatim_rate"] == 0
+    assert report["gold_fact_recall"] == 0
+    assert report["details"][0]["citations"][0]["verbatim"] is False

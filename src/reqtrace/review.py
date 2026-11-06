@@ -210,6 +210,7 @@ class ReviewSession:
             "rule_id": rule_id,
             "saved_verdict": check.verdict,
             "downgrade_reason": check.downgrade_reason,
+            "unverified_quotes": check.unverified_quotes,
             "follow_up_required": check.verdict in NEEDS_FOLLOW_UP and not question,
             "rules_remaining": self.missing_rules(),
         }

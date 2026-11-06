@@ -63,7 +63,7 @@ All of these steps run through audited tools, so refused actions are logged too.
 |---|---|
 | **Agent design** | Six audited tools (`read_change_request`, `search_policy`, `verify_quote`, `save_finding`, `request_approval`, `export_report`), plus a comparison of model-driven and code-controlled workflows |
 | **Generative AI and RAG** | A local LLM through Ollama, embedding retrieval with a BM25 comparison, and structured output with JSON Schema |
-| **Testing and evaluation** | 40 labelled cases split by document, a frozen label set, 156 automated tests, and a prompt injection test suite |
+| **Testing and evaluation** | 40 labelled cases split by document, a frozen label set, 162 automated tests, and a prompt injection test suite |
 | **Governance and controls** | Human approval, a hash-chained audit log, citation checks, document screening, and a record of known limits |
 | **Documentation** | [Scenario spec](docs/scenario_healthcare_it.md), [annotation guidelines](docs/annotation_guidelines.md), [label decisions](docs/label_decisions.md), and written results |
 
@@ -172,3 +172,7 @@ docs/                    Scenario spec, guidelines, label decisions, results, an
 - Add a FastAPI service and Docker packaging
 - Write the governance pack: agent card, permission matrix, and risk register
 - Get an independent label review, then run the held-out cases once
+
+## Licence
+
+[MIT](LICENSE)

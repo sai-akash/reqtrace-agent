@@ -153,6 +153,7 @@ def test_report_shows_raw_and_checked_scores_and_downgrade_effects():
         "downgraded": 2,
         "no_citations": 2,
         "unverified_quote": 0,
+        "abstentions_with_unverified_quotes": 0,
         "fixed_wrong_verdict": 1,
         "changed_correct_verdict": 1,
     }

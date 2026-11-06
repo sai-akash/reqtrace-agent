@@ -31,6 +31,7 @@ class Finding:
 class CitationCheck:
     verdict: str
     downgrade_reason: str | None = None
+    unverified_quotes: int = 0
 
 
 class Assessor(Protocol):
@@ -56,13 +57,15 @@ def citation_is_verbatim(citation: Citation, sections: Sequence[Section]) -> boo
 def check_citations(finding: Finding, sections: Sequence[Section]) -> CitationCheck:
     """Downgrade a verdict that has no citations or has a quote not found in its section.
 
-    Only `insufficient_evidence` may have no citations. This shows that the quotes
-    exist, not that they prove the verdict or cover every fact it relies on.
+    Only `insufficient_evidence` may have no citations. It can't be downgraded further,
+    so its unverified quotes are counted instead. This shows that the quotes exist,
+    not that they prove the verdict or cover every fact it relies on.
     """
+    unverified = sum(not citation_is_verbatim(c, sections) for c in finding.citations)
     if finding.verdict not in VERDICTS_NEEDING_EVIDENCE:
-        return CitationCheck(finding.verdict)
+        return CitationCheck(finding.verdict, unverified_quotes=unverified)
     if not finding.citations:
         return CitationCheck(ABSTAIN, "no_citations")
-    if not all(citation_is_verbatim(citation, sections) for citation in finding.citations):
-        return CitationCheck(ABSTAIN, "unverified_quote")
+    if unverified:
+        return CitationCheck(ABSTAIN, "unverified_quote", unverified)
     return CitationCheck(finding.verdict)

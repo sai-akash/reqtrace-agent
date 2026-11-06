@@ -139,6 +139,7 @@ def evaluate_assessor(
     input_tokens = output_tokens = 0
     served_by: Counter[str] = Counter()
     downgrades: Counter[str] = Counter()
+    abstentions_with_unverified_quotes = 0
 
     for case in cases:
         all_sections = load_change_request(case["change_request"])
@@ -165,6 +166,8 @@ def evaluate_assessor(
         checked.append(check.verdict)
         if check.downgrade_reason:
             downgrades[check.downgrade_reason] += 1
+        elif check.unverified_quotes:
+            abstentions_with_unverified_quotes += 1
         citations = [
             {"section": c.section, "quote": c.quote, "verbatim": citation_is_verbatim(c, context)}
             for c in finding.citations
@@ -204,6 +207,7 @@ def evaluate_assessor(
             "downgraded": len(changed),
             "no_citations": downgrades["no_citations"],
             "unverified_quote": downgrades["unverified_quote"],
+            "abstentions_with_unverified_quotes": abstentions_with_unverified_quotes,
             "fixed_wrong_verdict": sum(g == c for g, _, c in changed),
             "changed_correct_verdict": sum(g == r for g, r, _ in changed),
         },

@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Agent that checks evidence against requirements, cites sources, and waits for human approval."
 readme = "README.md"
 requires-python = ">=3.11"
+license = { text = "MIT" }
 dependencies = ["pydantic>=2.0", "pyyaml>=6.0"]
 
 [project.optional-dependencies]

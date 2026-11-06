@@ -13,7 +13,7 @@ from reqtrace.agent import (
 )
 from reqtrace.assessment import Citation, Finding
 from reqtrace.audit import AuditLog, read_audit_log, verify_audit_log
-from reqtrace.cli import run_cli
+from reqtrace.cli import render_findings, run_cli
 from reqtrace.documents import Rule, Section
 from reqtrace.prompting import AssessmentError
 from reqtrace.retrieval import Bm25Retriever
@@ -461,6 +461,23 @@ def test_cli_asks_for_no_decision_when_the_review_is_incomplete(session):
         raise AssertionError("A person shouldn't be asked to approve an incomplete review.")
 
     assert run_cli(session, FakeAssessor(findings), Bm25Retriever(), fail) == 1
+
+
+def test_unverified_abstention_quote_is_reported_and_shown_to_the_reviewer(session):
+    session.call_tool("read_change_request", {"change_request_id": "CR-X"})
+    saved = session.call_tool(
+        "save_finding",
+        {
+            "rule_id": "R-1",
+            "verdict": "insufficient_evidence",
+            "citations": [{"section": "4. Testing", "quote": "An invented quote."}],
+            "follow_up_question": "Was it tested?",
+        },
+    )
+    assert saved["unverified_quotes"] == 1
+    assert saved["saved_verdict"] == "insufficient_evidence"
+    session.call_tool("save_finding", SAVE_2[1])
+    assert "[not verified] 4. Testing: An invented quote." in render_findings(session)
 
 
 def test_prompt_tells_the_model_to_stop_and_treat_results_as_material():
