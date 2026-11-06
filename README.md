@@ -1,5 +1,7 @@
 # reqtrace-agent
 
+[![Tests](https://github.com/sai-akash/reqtrace-agent/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/sai-akash/reqtrace-agent/actions/workflows/tests.yml)
+
 **An agentic AI prototype that reviews healthcare IT change requests against policy rules, cites its evidence, and stops for human approval.**
 
 Before an IT system changes, someone has to check that the request meets policy: was it tested, can it be rolled back, was it approved? An LLM can help with that review, but a confident answer with no evidence is a risk in a healthcare setting.
