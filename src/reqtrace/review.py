@@ -139,6 +139,13 @@ class ReviewSession:
             raise ToolRefused(
                 f"Bad arguments for {name}: missing {sorted(missing)}, unexpected {sorted(unexpected)}."
             )
+        wrong_type = sorted(
+            key
+            for key, value in arguments.items()
+            if properties["properties"][key]["type"] == "string" and not isinstance(value, str)
+        )
+        if wrong_type:
+            raise ToolRefused(f"Bad arguments for {name}: {wrong_type} must be strings.")
         return tool(self, **arguments)
 
     def _require_drafting(self, action: str) -> None:
@@ -159,7 +166,7 @@ class ReviewSession:
         }
 
     def search_policy(self, query: str) -> dict:
-        query = str(query).strip()
+        query = query.strip()
         if not query:
             raise ToolRefused("The query can't be empty.")
         if query in self.rules:
@@ -172,7 +179,7 @@ class ReviewSession:
         return {"rules": [asdict(rule) for rule in matches]}
 
     def verify_quote(self, section: str, quote: str) -> dict:
-        return {"verified": citation_is_verbatim(Citation(str(section), str(quote)), self.sections)}
+        return {"verified": citation_is_verbatim(Citation(section, quote), self.sections)}
 
     def save_finding(
         self,
@@ -190,7 +197,7 @@ class ReviewSession:
             raise ToolRefused(f"Invalid verdict: {verdict!r}. Expected one of {list(VERDICTS)}.")
         parsed = _parse_citations(citations)
         check = check_citations(Finding(verdict, parsed), self.sections)
-        question = str(follow_up_question).strip()
+        question = follow_up_question.strip()
         self.findings[rule_id] = SavedFinding(
             rule_id=rule_id,
             raw_verdict=verdict,
@@ -301,7 +308,9 @@ def _parse_citations(citations: object) -> tuple[Citation, ...]:
     for item in citations:
         if not isinstance(item, dict) or not {"section", "quote"} <= set(item):
             raise ToolRefused("Each citation needs a section and a quote.")
-        parsed.append(Citation(str(item["section"]), str(item["quote"])))
+        if not isinstance(item["section"], str) or not isinstance(item["quote"], str):
+            raise ToolRefused("A citation's section and quote must be strings.")
+        parsed.append(Citation(item["section"], item["quote"]))
     return tuple(parsed)
 
 
