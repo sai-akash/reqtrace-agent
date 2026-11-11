@@ -8,6 +8,8 @@ Before an IT system changes, someone has to check that the request meets policy:
 
 This prototype explores how to make that kind of agent testable and governable. Every verdict must cite the source text, every step is logged, and a named person decides whether anything leaves the system. The evaluation records what works and what still fails.
 
+It also runs inside Microsoft 365: change requests arrive through OneDrive, approvals go through Power Automate, and a Microsoft 365 Copilot agent answers policy questions. See [Microsoft 365 integration](#microsoft-365-integration).
+
 > **This is a proof of concept using invented data.** It produces a preliminary review, not a compliance decision. All organisations, systems, policies, and change requests are fictional, and the repo contains no patient or company data.
 
 ## What it does
@@ -67,6 +69,7 @@ All of these steps run through audited tools, so refused actions are logged too.
 | **Generative AI and RAG** | A local LLM through Ollama, embedding retrieval with a BM25 comparison, and structured output with JSON Schema |
 | **Testing and evaluation** | 40 labelled cases split by document, a frozen label set, 200+ automated tests, and a prompt injection test suite |
 | **Governance and controls** | Human approval, a hash-chained audit log, citation checks, document screening, and a record of known limits |
+| **Microsoft 365** | A OneDrive folder bridge, a Power Automate approval flow, and a Microsoft 365 Copilot agent that explains the policy |
 | **Documentation** | [Scenario spec](docs/scenario_healthcare_it.md), [annotation guidelines](docs/annotation_guidelines.md), [label decisions](docs/label_decisions.md), and written results |
 
 ## Results so far
@@ -154,17 +157,110 @@ python -m reqtrace.cli CR-103
 
 Reviews take a few minutes on a laptop CPU. Each run saves its audit log and any report in `runs/`.
 
-## Microsoft 365 integration (experimental)
+## Microsoft 365 integration
 
-A synced-folder bridge runs reviews from a OneDrive folder, and a Power Automate flow collects the approval. It needs no app registration, because OneDrive syncs the folder and the flow signs in as the user.
+Engineering teams already work in Microsoft 365, so a review tool is more useful if it fits into their documents, approvals, and chat. This part connects reqtrace-agent to Microsoft 365, using only what a student account allowed.
 
-```bash
-python -m reqtrace.bridge --shared-dir "C:\path	o\OneDrive\ReqTrace"
+| Component | What it does | Built with | Status |
+|---|---|---|---|
+| **Folder bridge** | Picks up change requests from a synced OneDrive folder, runs the review, and exports a report only after an approved decision | Python (`src/reqtrace/bridge.py`) | Tested automatically, plus one real end-to-end run |
+| **Approval flow** | Sends each draft review to a person and returns their decision | Power Automate | One approval completed end to end |
+| **Policy agent** | Answers questions about the policy in chat, citing rule IDs | Microsoft 365 Copilot Agent Builder | 11 of 11 test questions passed |
+
+### How a review flows through Microsoft 365
+
+```mermaid
+flowchart LR
+    A[Engineer uploads a change request to OneDrive] --> B[OneDrive syncs it to the reviewer's computer]
+    B --> C[Bridge runs the review: screening, retrieval, LLM, citation checks]
+    C --> D[Draft findings saved to OneDrive]
+    D --> E[Power Automate sends an approval request]
+    E --> F{Reviewer approves in Outlook, Teams, or Power Automate?}
+    F -->|Approve| G[Decision file saved to OneDrive]
+    F -->|Reject| H[Decision file saved; nothing exported]
+    G --> I[Bridge checks the decision matches the reviewed findings]
+    I --> J[Report exported to OneDrive]
 ```
 
-One full run has worked end to end: a change request went through review, a Power Automate approval, and report export, with the approver's email recorded in the audit log. Rejection and tampered decisions are covered by automated tests but haven't been tried through the flow yet. Decision files don't count as authentication, so access to the decisions folder must be limited. See the [setup guide](docs/microsoft/power_automate.md) for the flow and its limits.
+1. **Upload:** someone puts a change request, such as `CR-101.md`, in the `Requests` folder.
+2. **Review:** the bridge waits until the file has finished syncing, then runs the same controlled workflow as the rest of the project. It screens for hidden instructions, retrieves sections, asks the model for verdicts, and checks every quote.
+3. **Draft:** the bridge saves the findings to `Drafts` as readable Markdown and as JSON for the flow. Each draft carries a **findings digest**, a fingerprint of exactly what was reviewed.
+4. **Approval:** Power Automate sees the new draft and sends an approval request. The reviewer sees each verdict, its quotes, follow-up questions, and any hidden text that was removed.
+5. **Decision:** the flow saves a decision file to `Decisions`, with the outcome, the approver's name and email, and the findings digest.
+6. **Export:** the bridge accepts the decision only if it's for a review that's still waiting and its digest matches. If it does, the bridge exports the report to `Approved`. Otherwise, it explains the refusal in `Problems`.
 
-A separate **Microsoft 365 Copilot agent**, built with Agent Builder, answers questions about the policy and cites rule IDs. It passed 11 of 11 test questions, including declining to approve a change and resisting a direct injection attempt. The policy is held in an agent skill, not as a knowledge source, because file knowledge needed a Copilot Studio licence. See [the agent's configuration and test](docs/microsoft/copilot_agent.md).
+Each step is recorded in hash-chained audit logs, which stay on the reviewer's computer, not in OneDrive.
+
+### Design decisions
+
+| Decision | Why |
+|---|---|
+| **Synced folder instead of a Microsoft Graph connection** | The account couldn't register apps in Microsoft Entra, which Graph needs. Syncing also avoids exposing a local API to the internet. |
+| **OneDrive instead of SharePoint** | No SharePoint site was available to the account. The same design works with a synced SharePoint library. |
+| **Review logic stays in Python** | The tested workflow, citation checks, and screening are reused unchanged. Power Automate only handles routing and approval. |
+| **Approval is tied to a digest** | A decision applies only to the exact findings the reviewer saw. If the findings change, the old approval is refused. |
+| **Separate policy agent** | The chat agent explains the policy, but it doesn't judge change requests or approve anything. Specific reviews go through the bridge and a person. |
+
+### Safeguards
+
+| Risk | Control | How it was tested |
+|---|---|---|
+| A forged or edited decision file | The decision must match the findings digest, and the approver is logged | Automated tests |
+| Approving an outdated version | A new upload supersedes the pending review, and decisions for the old one are refused | Automated tests |
+| Reading a file that's still syncing | Files are processed only after they stop changing for 10 seconds | Automated tests |
+| The same file triggering two reviews | Files are tracked by their content, so repeats are skipped | Automated tests |
+| The model being unavailable | The upload stays waiting and is retried on the next check | Automated tests |
+| A saved review edited while it waits | It must still match its digest, or the decision is refused | Automated tests |
+| Hidden instructions in an uploaded document | They're removed from the model's input and shown to the approver | Automated tests |
+| The chat agent being asked to approve a change | Its instructions say a person decides | Manual test: declined |
+
+### Results
+
+| Check | Result |
+|---|---|
+| Upload produces a draft for approval | Worked (CR-101) |
+| Approval request shows findings and digest | Worked |
+| Approval exports the report, with the approver recorded | Worked |
+| Audit logs intact afterwards | Worked |
+| Rejection exports nothing | Automated tests only |
+| Edited decision file is refused | Automated tests only |
+| Repeat upload doesn't start a second review | Automated tests only |
+| Policy agent answers 8 rule questions with correct rule IDs | 8 of 8 |
+| Policy agent says when the policy doesn't cover a question | Passed |
+| Policy agent declines to approve a change | Passed |
+| Policy agent resists a direct injection attempt | Passed |
+
+The policy agent was tested once per question, on a short policy, and scored by the author. See [its configuration and test](docs/microsoft/copilot_agent.md).
+
+### Problems found while building it
+
+| Problem | What changed |
+|---|---|
+| No access to Microsoft Entra, so no Graph connection | Switched to a synced folder that Python and Power Automate both use |
+| No SharePoint site available | Used OneDrive with the same folder structure |
+| The flow's **File name** value arrived encoded, so the `.json` check never matched | Read the plain name from the trigger with an expression instead |
+| File content arrived as raw bytes, which Parse JSON rejected | Decoded it with `base64ToString` before parsing |
+| Test runs only react to files created after the test starts | Retested by copying a draft under a new name |
+| Copilot Studio refused to create agents without a licence, and file knowledge needed one too | Built the agent in Microsoft 365 Copilot Agent Builder, with the policy in a skill |
+
+### Limits
+
+- **Decision files aren't authentication:** anyone who can write to `Decisions` could create one. The digest check and logged approver make forgery harder and visible, so access to that folder must be limited.
+- **The reviewer's computer must be on:** reviews run locally with Ollama.
+- **One person's storage:** OneDrive shows the workflow for one user, not a shared team library.
+- **The policy agent isn't retrieval:** the whole policy is supplied to the model, which works for a short policy but not for large document collections.
+- **Only partly tested through Microsoft 365:** rejection and tampering have automated tests, but haven't been tried through the real flow.
+- **Not reproducible from this repo alone:** the flow and agent live in a Microsoft 365 account, so the guides record their configuration and results.
+
+### Run it
+
+Start the bridge with the path to your synced folder:
+
+```bash
+python -m reqtrace.bridge --shared-dir "C:/path/to/OneDrive/ReqTrace"
+```
+
+Then follow the [Power Automate setup guide](docs/microsoft/power_automate.md) to build the flow, and [the agent page](docs/microsoft/copilot_agent.md) to recreate the policy agent.
 
 ## Repository layout
 
@@ -180,6 +276,9 @@ docs/                    Scenario spec, guidelines, label decisions, results, an
 
 ## Next steps
 
+- Test rejection, edited decisions, and repeat uploads through the real Power Automate flow
+- Move the folders to a shared SharePoint library, once one is available
+- Add the policy to the Copilot agent as a knowledge source, if a licence allows it, and rerun the same 11 questions
 - Address the open injection risk, and test with new attack wording and a harmless-text control
 - Add a route to revise and resubmit rejected reviews
 - Compare plain tool calling with LangGraph
