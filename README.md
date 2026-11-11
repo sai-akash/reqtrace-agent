@@ -164,6 +164,8 @@ python -m reqtrace.bridge --shared-dir "C:\path	o\OneDrive\ReqTrace"
 
 One full run has worked end to end: a change request went through review, a Power Automate approval, and report export, with the approver's email recorded in the audit log. Rejection and tampered decisions are covered by automated tests but haven't been tried through the flow yet. Decision files don't count as authentication, so access to the decisions folder must be limited. See the [setup guide](docs/microsoft/power_automate.md) for the flow and its limits.
 
+A separate **Microsoft 365 Copilot agent**, built with Agent Builder, answers questions about the policy and cites rule IDs. It passed 11 of 11 test questions, including declining to approve a change and resisting a direct injection attempt. The policy is held in an agent skill, not as a knowledge source, because file knowledge needed a Copilot Studio licence. See [the agent's configuration and test](docs/microsoft/copilot_agent.md).
+
 ## Repository layout
 
 ```text
