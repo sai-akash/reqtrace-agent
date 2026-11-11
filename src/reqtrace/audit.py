@@ -37,6 +37,20 @@ class AuditLog:
         self.sequence = 0
         self.last_hash = GENESIS_HASH
 
+    @classmethod
+    def resume(cls, path: Path, clock: Callable[[], str] = _utc_now) -> "AuditLog":
+        """Continue an existing log, but only if its chain is intact."""
+        problems = verify_audit_log(path)
+        if problems:
+            raise ValueError(f"Audit log is damaged, so it can't be continued: {problems[0]}")
+        entries = read_audit_log(path)
+        log = cls.__new__(cls)
+        log.path = path
+        log.clock = clock
+        log.sequence = len(entries)
+        log.last_hash = entries[-1]["hash"] if entries else GENESIS_HASH
+        return log
+
     def record(self, actor: str, action: str, details: dict, outcome: str) -> dict:
         self.sequence += 1
         entry = {

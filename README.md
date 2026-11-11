@@ -65,7 +65,7 @@ All of these steps run through audited tools, so refused actions are logged too.
 |---|---|
 | **Agent design** | Six audited tools (`read_change_request`, `search_policy`, `verify_quote`, `save_finding`, `request_approval`, `export_report`), plus a comparison of model-driven and code-controlled workflows |
 | **Generative AI and RAG** | A local LLM through Ollama, embedding retrieval with a BM25 comparison, and structured output with JSON Schema |
-| **Testing and evaluation** | 40 labelled cases split by document, a frozen label set, 217 automated tests, and a prompt injection test suite |
+| **Testing and evaluation** | 40 labelled cases split by document, a frozen label set, 200+ automated tests, and a prompt injection test suite |
 | **Governance and controls** | Human approval, a hash-chained audit log, citation checks, document screening, and a record of known limits |
 | **Documentation** | [Scenario spec](docs/scenario_healthcare_it.md), [annotation guidelines](docs/annotation_guidelines.md), [label decisions](docs/label_decisions.md), and written results |
 
@@ -154,10 +154,20 @@ python -m reqtrace.cli CR-103
 
 Reviews take a few minutes on a laptop CPU. Each run saves its audit log and any report in `runs/`.
 
+## Microsoft 365 integration (experimental)
+
+A synced-folder bridge runs reviews from a OneDrive folder, and a Power Automate flow collects the approval. It needs no app registration, because OneDrive syncs the folder and the flow signs in as the user.
+
+```bash
+python -m reqtrace.bridge --shared-dir "C:\path	o\OneDrive\ReqTrace"
+```
+
+One full run has worked end to end: a change request went through review, a Power Automate approval, and report export, with the approver's email recorded in the audit log. Rejection and tampered decisions are covered by automated tests but haven't been tried through the flow yet. Decision files don't count as authentication, so access to the decisions folder must be limited. See the [setup guide](docs/microsoft/power_automate.md) for the flow and its limits.
+
 ## Repository layout
 
 ```text
-src/reqtrace/            Tools, approval state, audit log, screening, retrieval, and agent workflows
+src/reqtrace/            Tools, approval state, audit log, screening, retrieval, workflows, and the OneDrive folder bridge
 domains/healthcare_it/   Fictional policy and change requests
 eval/datasets/           Labelled cases (dev and held-out)
 eval/results/            Saved development reports

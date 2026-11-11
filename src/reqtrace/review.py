@@ -67,6 +67,7 @@ class ReviewSession:
         rules: dict[str, Rule] | None = None,
         sections: Sequence[Section] | None = None,
         screen: bool = True,
+        record_screening: bool = True,
     ) -> None:
         if sections is None:
             if change_request_id not in known_change_requests():
@@ -81,7 +82,7 @@ class ReviewSession:
         self.quarantined: list[QuarantinedText] = []
         if screen:
             self.sections, self.quarantined = screen_sections(sections)
-        if self.quarantined:
+        if self.quarantined and record_screening:
             self.audit.record(
                 "system",
                 "screen_document",
@@ -93,6 +94,42 @@ class ReviewSession:
         self.document_read = False
         self.approved_digest: str | None = None
         self.calls: list[dict] = []
+
+    def to_state(self, original_sections: Sequence[Section]) -> dict:
+        """Save what's needed to resume a review that is waiting for a decision."""
+        return {
+            "change_request_id": self.change_request_id,
+            "sections": [asdict(section) for section in original_sections],
+            "findings": [asdict(finding) for finding in self.findings.values()],
+            "state": self.state,
+            "findings_digest": self.findings_digest(),
+        }
+
+    @classmethod
+    def restore(
+        cls,
+        saved: dict,
+        audit: AuditLog,
+        export_dir: Path,
+        rules: dict[str, Rule] | None = None,
+    ) -> "ReviewSession":
+        """Rebuild a saved review. Refuse if it no longer matches its saved digest."""
+        session = cls(
+            saved["change_request_id"],
+            audit,
+            export_dir,
+            rules=rules,
+            sections=[Section(**section) for section in saved["sections"]],
+            record_screening=False,
+        )
+        for finding in saved["findings"]:
+            item = SavedFinding(**(finding | {"citations": tuple(finding["citations"])}))
+            session.findings[item.rule_id] = item
+        session.state = saved["state"]
+        session.document_read = True
+        if session.findings_digest() != saved["findings_digest"]:
+            raise ValueError("The saved review doesn't match its findings digest.")
+        return session
 
     def findings_digest(self) -> str:
         return _digest(
